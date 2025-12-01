@@ -245,7 +245,7 @@ def find_qwords(lea_isnt_addr, max_instructions=20):
     while current_addr < end_addr:
         current_addr = idc.next_head(current_addr)
         
-        if current_addr == idaapi.BADADDR:
+        if current_addr == ida_idaapi.BADADDR:
             break
             
         if idc.print_insn_mnem(current_addr) == "lea" and idc.print_operand(current_addr, 0) == "rcx":
@@ -293,10 +293,10 @@ def main():
                 
             # 복호화된 문자열 중 qword 변수명 변경
             qwords = find_qwords(inst_addr, )
-            qword_insn = qwords[current_addr]
-            qword_addr = qwords[qword_addr]
+            qword_insn = qwords[0]
+            qword_addr = qwords[1]
             new_name = sanitize_name(f"str_{decrypted[:20]}")
-            if ida_name_set_name(qword_addr, new_name, ida_name.SN_CHECK):
+            if ida_name.set_name(qword_addr, new_name, ida_name.SN_CHECK):
                 qword_count += 1
                 print(f"Renamed String at 0x{qword_insn:X}: {new_name}")
         
