@@ -1,7 +1,7 @@
 import idc
 
 # WinAPI 파일 경로
-file_path = r"C:\Users\amdin\Desktop\S2W\unlicense-py3.11-x64\api4.txt"
+file_path = r""
 
 try:
     with open(file_path, "r") as f:

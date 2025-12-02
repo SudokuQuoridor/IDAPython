@@ -1,8 +1,8 @@
 from idc import *
 from ida_name import *
 
-# string.txt 경로 지정
-FILE_PATH = r"C:\Users\amdin\Desktop\S2W\unlicense-py3.11-x64\string.txt"
+# string.txt 경로
+FILE_PATH = r""
 
 def apply_names_from_file(file_path):
     try:
