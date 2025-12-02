@@ -1,4 +1,7 @@
 ##################################################################################
+    # Author: SudokuQuoridor
+    # Sample: A332B3C53F084CFCA26B0C9D8C09B9B6105D4073
+
     # 목표: Stealc에서 Base64/RC4 암호화된 문자열 복호화 및 IDA rename 또는 주석
     
     # 모듈(기능)
@@ -9,7 +12,8 @@
     # 2. 문자열 찾기
     #   ㄱ. .text 세그먼트 데이터 읽기
     #   ㄴ. lea rdx 명령어 찾기
-    #   ㄷ. 첫 번째 operand가 Base64 포멧인지 확인
+    #       >  첫 번째 operand가 Base64 포멧인지 확인
+    #   ㄷ. lea rcx qword_ 찾기
     
     # 3. RC4 복호화
     #   ㄱ. RC4 알고리즘 구현
@@ -17,14 +21,11 @@
     
     # 4. IDA rename 또는 주석
     #   ㄱ. sanitize 네이밍
-    #   ㄴ. IDA rename 또는 주석
-    
-    # main 함수 흐름
-    # 1. RC4 Key 찾기
-    #   > find_rc4_key(get_binary_data())
-    # 2. 문자열 찾기
-    # 3. RC4 복호화
-    # 4. IDA rename 또는 주석
+    #   ㄴ. string rename
+    #   ㄷ. qword rename
+
+    # 5. 주의사항
+    #   ㄱ. 이미 분석 진행중에 변수에 심볼 정보를 등록한 경우 오류가 발생할 수 있습니다.
 ##################################################################################
 
 import idautils
@@ -36,6 +37,7 @@ import idc
 import string
 import ida_name
 import ida_idaapi
+import traceback
 
 #RC4 Key 찾기 위해 모든 시그먼트 읽기
 def get_binary_data():
@@ -163,7 +165,7 @@ def find_lea_rdx_instructions():
 	return result	
 
 # rc4 복호화에는 필요한 요소 복호화 알고리즘, 대상 데이터, 키
-def rc4_decrpyt(encrypted_data, rc4_key):
+def rc4_decrypt(encrypted_data, rc4_key):
     # 1. S-BOX 초기화
     S = list(range(256))
     
@@ -200,7 +202,7 @@ def decrypt_string(base64_encoded, key_str):
         encrypted_data = base64.b64decode(base64_encoded)
 
         # rc4 복호화
-        decrypted_data = rc4_decrpyt(encrypted_data, key_bytes)
+        decrypted_data = rc4_decrypt(encrypted_data, key_bytes)
         
         # printable ASCII 및 'TAB', 'LF', 'CR'인지
         is_printable = all(32 <= b <= 126 or b in (9, 10, 13) for b in decrypted_data)
@@ -236,7 +238,7 @@ def sanitize_name(name):
     return result
     
 # qword 접두사 문자열 찾기    
-def find_qwords(lea_isnt_addr, max_instructions=20):
+def find_qwords(lea_isnt_addr, decrypted, max_instructions=20):
     qwords = []
     
     current_addr = lea_isnt_addr
@@ -292,16 +294,16 @@ def main():
                 print(f"Renamed string at 0x{str_addr:X}: {new_name}")
                 
             # 복호화된 문자열 중 qword 변수명 변경
-            qwords = find_qwords(inst_addr, )
-            qword_insn = qwords[0]
-            qword_addr = qwords[1]
-            new_name = sanitize_name(f"str_{decrypted[:20]}")
-            if ida_name.set_name(qword_addr, new_name, ida_name.SN_CHECK):
-                qword_count += 1
-                print(f"Renamed String at 0x{qword_insn:X}: {new_name}")
+            assoicated_qwords = find_qwords(inst_addr, decrypted)
+            for qword_inst_addr, qword_addr in assoicated_qwords:
+                qword_new_name = sanitize_name(f"qw_{decrypted[:20]}")
+                if ida_name.set_name(qword_addr, qword_new_name, ida_name.SN_CHECK):
+                    qword_count += 1
+                    print(f"Renamed String at 0x{qword_addr:X}: {qword_new_name}")
         
         except Exception as e:
             print(f"[ERROR] processing string at 0x{str_addr:X}: {e}")
+            traceback.print_exc()
                 
     print(f"Added {str_count} decryption comments")
     print(f"Renamed {str_var_count} string variables")
