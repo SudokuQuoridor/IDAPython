@@ -2,30 +2,32 @@
     # Author: SudokuQuoridor
     # Sample: A332B3C53F084CFCA26B0C9D8C09B9B6105D4073
 
-    # 목표: Stealc에서 Base64/RC4 암호화된 문자열 복호화 및 IDA rename 또는 주석
+    # 목표: Stealc에서 Base64/RC4 암호화된 문자열 복호화 및 해당 문자열을 참조하는 변수를 Rename 또는 주석
     
     # 모듈(기능)
     # 1. RC4 Key 찾기
     #   ㄱ. 모든 세그먼트 데이터 읽기
-    #   ㄴ. opcode(string too long) 이후 세 번째 문자열(RC4 Key) 찾기
+    #   ㄴ. opcode(string too long) 이후 세 번째 문자열(RC4 Key) 추출
     
     # 2. 문자열 찾기
     #   ㄱ. .text 세그먼트 데이터 읽기
     #   ㄴ. lea rdx 명령어 찾기
     #       >  첫 번째 operand가 Base64 포멧인지 확인
     #   ㄷ. lea rcx qword_ 찾기
+    #       >  첫 번째 operand에 qword_ 접두사가 존재하는지 확인
     
     # 3. RC4 복호화
     #   ㄱ. RC4 알고리즘 구현
-    #   > KSA, 
+    #   > KSA, PRNG
     
     # 4. IDA rename 또는 주석
     #   ㄱ. sanitize 네이밍
-    #   ㄴ. string rename
-    #   ㄷ. qword rename
+    #   ㄴ. string 주석
+    #   ㄷ. string rename
+    #   ㄹ. qword rename
 
     # 5. 주의사항
-    #   ㄱ. 이미 분석 진행중에 변수에 심볼 정보를 등록한 경우 오류가 발생할 수 있습니다.
+    #   ㄱ. 이미 분석 진행중 변수에 심볼 정보를 등록한 경우 오류가 발생할 수 있습니다.
 ##################################################################################
 
 import idautils
@@ -59,7 +61,7 @@ def get_binary_data():
     return bytes(result)        
     
 def find_rc4_key(binary_data):
-    #stealc는 string too long ASCII 문자열 뒤 0x00을 구분자로 3번째 뒤에 RC4_key가 존재
+    #stealc는 "string too long" ASCII 문자열 뒤 0x00을 구분자로 3번째 문자열에 키가 존재
     opcode = bytes.fromhex("73 74 72 69 6E 67 20 74 6F 6F 20 6C 6F 6E 67")
     
     positions = []
@@ -82,7 +84,7 @@ def find_rc4_key(binary_data):
         structure_bytes = binary_data[pos + len(opcode): pos + len(opcode) + 128]
         
         for b in structure_bytes:
-            #printable ASCII 범위가 아닌 경우 count 증가
+            #printable ASCII 범위가 아닌 경우 count 증가하여 3번째 RC4 키 추출
             if 32 <= b <= 126:
                 current_str += chr(b)
             elif current_str:
@@ -164,7 +166,7 @@ def find_lea_rdx_instructions():
 		
 	return result	
 
-# rc4 복호화에는 필요한 요소 복호화 알고리즘, 대상 데이터, 키
+# rc4 복호화 알고리즘
 def rc4_decrypt(encrypted_data, rc4_key):
     # 1. S-BOX 초기화
     S = list(range(256))
@@ -304,7 +306,8 @@ def main():
         except Exception as e:
             print(f"[ERROR] processing string at 0x{str_addr:X}: {e}")
             traceback.print_exc()
-                
+
+    # 최종 결과 출력            
     print(f"Added {str_count} decryption comments")
     print(f"Renamed {str_var_count} string variables")
     print(f"Renamed {qword_count} associated qword variables")
