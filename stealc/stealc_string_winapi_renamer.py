@@ -5,7 +5,7 @@
 	# 주요 기능
 	# 1. RC4 Key 찾기
 	# 2. 암호화된 문자열 찾기
-	# 3. API 주소를 참조하는 변수 차지 
+	# 3. API 주소를 참조하는 변수 찾기
 	# 4. RC4 복호화
 	# 5. IDA rename 또는 주석
 
@@ -18,6 +18,10 @@
 	# 3. 암호화된 문자열의 경우 "lea rdx [전역변수]" 명령어를 찾음
 	# 4. winapi 참조 변수의 경우 "cmova rdx [전역변수]" -> call(GetProcaddress) -> "mov [참조변수] rax"
 	# 5. wininet.dll 관련 API명이 평문으로 저장되어 있으나 추후 변경시 수정 필요
+
+	# 변경사항
+	# winapi 또는 wininet 관련 API를 글자를 20자에서 30자로 증가(25-12-10)
+	# 	사유: Gdi.dll 관련 API GdipGetImageEncoders, GdipGetImageEncodersSize가 20자 제한으로 인해 중복 처리됨
 ##################################################################################################################
 
 import idautils
@@ -407,7 +411,7 @@ def main():
 	wininet_list = find_wininet()
 	# wininet.dll 관련 심볼 등록
 	for wininet_addr, wininet_str in wininet_list:
-		wininet_api_name = sanitize_name(f"api_{wininet_str[:20]}")
+		wininet_api_name = sanitize_name(f"api_{wininet_str[:30]}")
 		if ida_name.set_name(wininet_addr, wininet_api_name, ida_name.SN_CHECK):
 			wininet_count += 1
 			print(f"[INFO] Reanemd wininet String at 0x{wininet_addr:X}: {wininet_api_name}")
@@ -439,7 +443,7 @@ def main():
 			for qword_inst_addr, name_slot_addr in assoicated_qwords:
 				winapi_addr = dict_winapi.get(name_slot_addr)
 				if winapi_addr:
-					api_new_name = sanitize_name(f"api_{decrypted[:20]}")
+					api_new_name = sanitize_name(f"api_{decrypted[:30]}")
 					if ida_name.set_name(winapi_addr, api_new_name, ida_name.SN_CHECK):
 						winapi_count += 1
 						print(f"[INFO] Renamed winapi String at 0x{winapi_addr:X}: {api_new_name}")
