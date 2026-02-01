@@ -49,7 +49,6 @@ def collect_anchors_in_func(func_ea: int) -> List[Anchor]:
 	f = ida_funcs.get_func(func_ea)
 
 	if not f:
-		print(f"[ERROR] Failed to get_func func_ea: 0x{func_ea:X}")
 		return anchors
 	
 	ea = f.start_ea
@@ -79,7 +78,6 @@ def collect_anchors_in_func(func_ea: int) -> List[Anchor]:
 				ea = idc.next_head(ea, f.end_ea); continue
 			
 			# 2. xor reg8 imm8
-			print("[OK] find mov reg8 src_base+idx")
 			ea2 = idc.next_head(ea, f.end_ea)
 			if idc.print_insn_mnem(ea2).lower() != "xor":
 				ea = idc.next_head(ea, f.end_ea); continue
@@ -103,7 +101,6 @@ def collect_anchors_in_func(func_ea: int) -> List[Anchor]:
 			key = insn2.ops[1].value & 0xFF
 			
 			# 3. mov [dst_base(reg) + idx(reg)] reg8
-			print("[OK] find xor reg8 imm8")
 			ea3 = idc.next_head(ea2, f.end_ea)
 			if idc.print_insn_mnem(ea3).lower() != "mov":
 				ea = idc.next_head(ea, f.end_ea); continue
@@ -127,7 +124,6 @@ def collect_anchors_in_func(func_ea: int) -> List[Anchor]:
 				ea = idc.next_head(ea, f.end_ea); continue
 			
 			# Choose idx reg
-			print("[OK] find mov dst_base+idx reg8")
 			src_base, src_idx = parse_base_and_idx(op1)
 			dst_base, dst_idx = parse_base_and_idx(op0)
 
@@ -159,7 +155,6 @@ def collect_anchors_in_func(func_ea: int) -> List[Anchor]:
 
 		ea = idc.next_head(ea, f.end_ea)
 
-	print(anchors)
 	return anchors
 
 def find_string_len(idx: str, anchor_ea: int, max_forward_insn: int = 17, max_backward_insn: int = 20) -> Optional[int]:
